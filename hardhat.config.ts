@@ -29,6 +29,11 @@ const config: HardhatUserConfig = {
       accounts: PRIVATE_KEY ? [PRIVATE_KEY] : [],
       chainId: 80002,
     },
+    xrplEvmTestnet: {
+      url: "https://rpc.testnet.xrplevm.org",
+      accounts: PRIVATE_KEY ? [PRIVATE_KEY] : [],
+      chainId: 1449000,
+    },
   },
 };
 
