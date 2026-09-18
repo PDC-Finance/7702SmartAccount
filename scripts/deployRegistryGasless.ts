@@ -51,7 +51,8 @@ async function main() {
   const { chain, rpcUrl, chainId, suffix } = getNetworkConfig(networkName);
   const PAYMASTER_ADDR = getEnv(suffix, "PAYMASTER_ADDRESS") as `0x${string}`;
   const tdocImpl = getEnv(suffix, "TDOC_IMPLEMENTATION") as `0x${string}`;
-  const PIMLICO_URL = `https://api.pimlico.io/v2/${chainId}/rpc?apikey=${process.env.PIMLICO_API_KEY}`;
+  // const PIMLICO_URL = `https://api.pimlico.io/v2/${chainId}/rpc?apikey=${process.env.PIMLICO_API_KEY}`;
+  const PIMLICO_URL = 'https://alto-xrpl-evm-testnet.blockpeer.finance';
 
   const ownerAccount = privateKeyToAccount(process.env.OWNER_PRIVATE_KEY as `0x${string}`);
   const transport = http(rpcUrl);
