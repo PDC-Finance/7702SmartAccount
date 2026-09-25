@@ -14,11 +14,10 @@ This package provides three contracts:
 
 ## How it works
 
-1. **Delegate** — An EOA signs an EIP-7702 authorization pointing to `EIP7702Implementation`. The EOA's code becomes `0xef0100 || impl_address`, giving it full smart-account capabilities while keeping its original private key.
-2. **Deploy paymaster** — A platform calls `PlatformAccountFactory.deployPlatformPaymaster()`. A minimal-proxy clone (~55k gas vs ~1.5M for a full deploy) is initialized with the platform's owner address, daily ETH limit, and TDoc deployer.
-3. **Gasless ops** — Users submit `UserOperation`s through a bundler (Pimlico). The paymaster validates and sponsors:
-   - **Path A** — Calls to authorized registries or title escrows (beneficiary/holder/owner only, daily limit enforced)
-   - **Path B** — `deployRegistry` (credit-gated) and `mintDocument` (MINTER\_ROLE gated) on the paymaster itself
+1. **Deploy permissionless Simple7702Account** at `0xe6Cae83BdE06E4c305530e199D7217f42808555B` (CREATE2 via `scripts/deployPermissionlessSimple7702.ts`). bp-react / permissionless require this address — not the OpenZeppelin `EIP7702Implementation`.
+2. **Delegate** — An EOA signs an EIP-7702 authorization pointing to that Simple7702Account. The EOA's code becomes `0xef0100 || impl_address`.
+3. **Deploy paymaster** — A platform calls `PlatformAccountFactory.deployPlatformPaymaster()`. A minimal-proxy clone is initialized with the platform's owner address, daily ETH limit, and TDoc deployer.
+4. **Gasless ops** — Users submit `UserOperation`s through a bundler (Alto / Pimlico). The paymaster validates and sponsors Path A (authorized TE/registry) and Path B (`deployRegistry` / `mintDocument`).
 
 ## Contracts
 

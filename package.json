@@ -11,7 +11,11 @@
   "release": {
     "branches": [
       "main",
-      { "name": "dev", "prerelease": "beta", "channel": "beta" }
+      {
+        "name": "dev",
+        "prerelease": "beta",
+        "channel": "beta"
+      }
     ],
     "tagFormat": "v${version}"
   },
@@ -77,6 +81,6 @@
     "ts-node": "^10.9.2",
     "tsup": "^8.5.1",
     "typescript": "^6.0.3",
-    "viem": "^2.48.11"
+    "viem": "^2.56.8"
   }
 }
