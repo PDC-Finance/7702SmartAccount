@@ -80,17 +80,27 @@ async function main() {
     const deployerWallet = createWalletClient({ account: deployerAccount, chain, transport });
 
     console.log("Re-delegating EOA to account implementation...");
+    // When the EOA sends its own type-4 tx, its nonce is consumed before the
+    // authorization is checked, so the authorization must use nonce + 1.
+    // Otherwise the authorization is silently skipped and nothing is delegated.
+    const selfSponsored = deployerAccount.address.toLowerCase() === ownerAccount.address.toLowerCase();
     const ownerNonce = await publicClient.getTransactionCount({ address: ownerAccount.address });
     const authorization = await ownerWallet.signAuthorization({
       contractAddress: PERMISSIONLESS_IMPL,
-      nonce: ownerNonce,
+      nonce: selfSponsored ? ownerNonce + 1 : ownerNonce,
     });
     const authTx = await deployerWallet.sendTransaction({
       to: ownerAccount.address,
       data: "0x",
       authorizationList: [authorization],
+      // 21000 + 25000 per authorization; some RPCs estimate 21000 and ignore the list
+      gas: 100_000n,
     });
     await publicClient.waitForTransactionReceipt({ hash: authTx });
+    const after = await publicClient.getCode({ address: ownerAccount.address });
+    if (!after?.toLowerCase().startsWith(`0xef0100${PERMISSIONLESS_IMPL.slice(2).toLowerCase()}`)) {
+      throw new Error(`Delegation tx ${authTx} mined but the EOA is not delegated (authorization skipped — check its nonce)`);
+    }
     console.log("  Delegated tx:", authTx, "✓");
   } else {
     console.log("  Already delegated correctly — skipping");
