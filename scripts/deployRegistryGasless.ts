@@ -9,7 +9,7 @@
 //
 // Required .env:
 //   NETWORK                       — sepolia | amoy  (default: sepolia)
-//   PIMLICO_API_KEY               — free at dashboard.pimlico.io
+//   PIMLICO_API_KEY               — Pimlico bundler (all networks except xrplEvmTestnet, which uses Alto)
 //   OWNER_PRIVATE_KEY             — whitelisted user's key (signs UserOps, needs no ETH)
 //   PRIVATE_KEY                   — funded wallet (pays gas for delegation tx)
 //   SEPOLIA_RPC_URL / AMOY_RPC_URL
@@ -31,10 +31,9 @@ import { to7702SimpleSmartAccount } from "permissionless/accounts";
 import { createPimlicoClient } from "permissionless/clients/pimlico";
 import { entryPoint08Address } from "viem/account-abstraction";
 import * as dotenv from "dotenv";
-import { getNetworkConfig, getEnv } from "./lib/network";
+import { getNetworkConfig, getEnv, getBundlerUrl, getAccountImpl } from "./lib/network";
 dotenv.config();
 
-const PERMISSIONLESS_IMPL = "0xe6Cae83BdE06E4c305530e199D7217f42808555B" as const;
 
 const paymasterAbi = parseAbi([
   "function deployRegistry(address implementation, string name, string symbol) external returns (address deployed)",
@@ -42,7 +41,6 @@ const paymasterAbi = parseAbi([
 ]);
 
 async function main() {
-  if (!process.env.PIMLICO_API_KEY) throw new Error("PIMLICO_API_KEY not set");
   if (!process.env.OWNER_PRIVATE_KEY) throw new Error("OWNER_PRIVATE_KEY not set");
   if (!process.env.TOKEN_NAME) throw new Error("TOKEN_NAME not set");
   if (!process.env.TOKEN_SYMBOL) throw new Error("TOKEN_SYMBOL not set");
@@ -51,8 +49,8 @@ async function main() {
   const { chain, rpcUrl, chainId, suffix } = getNetworkConfig(networkName);
   const PAYMASTER_ADDR = getEnv(suffix, "PAYMASTER_ADDRESS") as `0x${string}`;
   const tdocImpl = getEnv(suffix, "TDOC_IMPLEMENTATION") as `0x${string}`;
-  // const PIMLICO_URL = `https://api.pimlico.io/v2/${chainId}/rpc?apikey=${process.env.PIMLICO_API_KEY}`;
-  const PIMLICO_URL = 'https://alto-xrpl-evm-testnet.blockpeer.finance';
+  const PIMLICO_URL = getBundlerUrl(suffix, chainId);
+  const PERMISSIONLESS_IMPL = getAccountImpl(suffix);
 
   const ownerAccount = privateKeyToAccount(process.env.OWNER_PRIVATE_KEY as `0x${string}`);
   const transport = http(rpcUrl);
@@ -81,7 +79,7 @@ async function main() {
     const ownerWallet = createWalletClient({ account: ownerAccount, chain, transport });
     const deployerWallet = createWalletClient({ account: deployerAccount, chain, transport });
 
-    console.log("Re-delegating EOA to permissionless impl...");
+    console.log("Re-delegating EOA to account implementation...");
     const ownerNonce = await publicClient.getTransactionCount({ address: ownerAccount.address });
     const authorization = await ownerWallet.signAuthorization({
       contractAddress: PERMISSIONLESS_IMPL,
@@ -99,7 +97,11 @@ async function main() {
   }
   console.log("");
 
-  const account = await to7702SimpleSmartAccount({ client: publicClient, owner: ownerAccount });
+  const account = await to7702SimpleSmartAccount({
+    client: publicClient,
+    owner: ownerAccount,
+    accountLogicAddress: PERMISSIONLESS_IMPL, // must match the delegation target
+  });
 
   const paymaster = {
     async getPaymasterStubData() {

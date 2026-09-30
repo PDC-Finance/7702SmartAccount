@@ -35,6 +35,35 @@ export function getNetworkConfig(networkName: string): {
   return { chain: entry.chain, rpcUrl, chainId: entry.chainId, suffix: entry.suffix };
 }
 
+/**
+ * ERC-4337 bundler for a network. BUNDLER_URL_<SUFFIX> wins; XRPL EVM Testnet
+ * defaults to the Blockpeer Alto instance; every other network uses Pimlico's
+ * hosted bundler with PIMLICO_API_KEY.
+ */
+export function getBundlerUrl(suffix: string, chainId: number): string {
+  const override = process.env[`BUNDLER_URL_${suffix}`]?.trim();
+  if (override) return override;
+  if (suffix === "XRPL_EVM_TESTNET") return "https://alto-xrpl-evm-testnet.blockpeer.finance";
+  const apiKey = process.env.PIMLICO_API_KEY?.trim();
+  if (!apiKey) throw new Error(`PIMLICO_API_KEY (or BUNDLER_URL_${suffix}) is not set in .env`);
+  return `https://api.pimlico.io/v2/${chainId}/rpc?apikey=${apiKey}`;
+}
+
+/**
+ * Contract the user's EOA delegates to (and the smart-account logic address
+ * passed to permissionless). ACCOUNT_IMPL_ADDRESS_<SUFFIX> wins; XRPL EVM
+ * Testnet uses permissionless's Simple7702Account; Sepolia / Amoy use
+ * TrustVC's shared EIP7702Implementation (EIP7702_IMPL_ADDRESS_<SUFFIX>).
+ */
+export const SIMPLE_7702_ACCOUNT = "0xe6Cae83BdE06E4c305530e199D7217f42808555B" as const;
+
+export function getAccountImpl(suffix: string): `0x${string}` {
+  const override = process.env[`ACCOUNT_IMPL_ADDRESS_${suffix}`]?.trim();
+  if (override) return override as `0x${string}`;
+  if (suffix === "XRPL_EVM_TESTNET") return SIMPLE_7702_ACCOUNT;
+  return getEnv(suffix, "EIP7702_IMPL_ADDRESS") as `0x${string}`;
+}
+
 /** Read a network-specific env var: <name>_SEPOLIA / <name>_AMOY etc. */
 export function getEnv(suffix: string, name: string, required = true): string {
   const key = `${name}_${suffix}`;

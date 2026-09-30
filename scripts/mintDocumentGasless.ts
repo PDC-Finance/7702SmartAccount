@@ -10,7 +10,7 @@
 //
 // Required .env:
 //   NETWORK                      — sepolia | amoy  (default: sepolia)
-//   PIMLICO_API_KEY              — free at dashboard.pimlico.io
+//   PIMLICO_API_KEY              — Pimlico bundler (all networks except xrplEvmTestnet, which uses Alto)
 //   OWNER_PRIVATE_KEY            — whitelisted user's key (signs UserOps, needs no ETH)
 //   PRIVATE_KEY                  — funded wallet (pays gas for delegation tx if needed)
 //   SEPOLIA_RPC_URL / AMOY_RPC_URL
@@ -38,10 +38,9 @@ import { to7702SimpleSmartAccount } from "permissionless/accounts";
 import { createPimlicoClient } from "permissionless/clients/pimlico";
 import { entryPoint08Address } from "viem/account-abstraction";
 import * as dotenv from "dotenv";
-import { getNetworkConfig, getEnv } from "./lib/network";
+import { getNetworkConfig, getEnv, getBundlerUrl, getAccountImpl } from "./lib/network";
 dotenv.config();
 
-const PERMISSIONLESS_IMPL = "0xe6Cae83BdE06E4c305530e199D7217f42808555B" as const;
 
 const paymasterAbi = parseAbi([
   "function mintDocument(address registry, address beneficiary, address holder, uint256 tokenId, bytes remark) external returns (address titleEscrow)",
@@ -49,7 +48,6 @@ const paymasterAbi = parseAbi([
 ]);
 
 async function main() {
-  if (!process.env.PIMLICO_API_KEY) throw new Error("PIMLICO_API_KEY not set");
   if (!process.env.OWNER_PRIVATE_KEY) throw new Error("OWNER_PRIVATE_KEY not set");
   if (!process.env.BENEFICIARY_ADDRESS) throw new Error("BENEFICIARY_ADDRESS not set");
   if (!process.env.HOLDER_ADDRESS) throw new Error("HOLDER_ADDRESS not set");
@@ -59,8 +57,8 @@ async function main() {
   const { chain, rpcUrl, chainId, suffix } = getNetworkConfig(networkName);
   const PAYMASTER_ADDR = getEnv(suffix, "PAYMASTER_ADDRESS") as `0x${string}`;
   const registry = getEnv(suffix, "REGISTRY_ADDRESS") as `0x${string}`;
-  // const PIMLICO_URL = `https://api.pimlico.io/v2/${chainId}/rpc?apikey=${process.env.PIMLICO_API_KEY}`;
-  const PIMLICO_URL = 'https://alto-xrpl-evm-testnet.blockpeer.finance';
+  const PIMLICO_URL = getBundlerUrl(suffix, chainId);
+  const PERMISSIONLESS_IMPL = getAccountImpl(suffix);
 
   const beneficiary = process.env.BENEFICIARY_ADDRESS as `0x${string}`;
   const holder = process.env.HOLDER_ADDRESS as `0x${string}`;
@@ -99,7 +97,7 @@ async function main() {
     const ownerWallet = createWalletClient({ account: ownerAccount, chain, transport });
     const deployerWallet = createWalletClient({ account: deployerAccount, chain, transport });
 
-    console.log("Re-delegating EOA to permissionless impl...");
+    console.log("Re-delegating EOA to account implementation...");
     const ownerNonce = await publicClient.getTransactionCount({ address: ownerAccount.address });
     const authorization = await ownerWallet.signAuthorization({
       contractAddress: PERMISSIONLESS_IMPL,
@@ -117,7 +115,11 @@ async function main() {
   }
   console.log("");
 
-  const account = await to7702SimpleSmartAccount({ client: publicClient, owner: ownerAccount });
+  const account = await to7702SimpleSmartAccount({
+    client: publicClient,
+    owner: ownerAccount,
+    accountLogicAddress: PERMISSIONLESS_IMPL, // must match the delegation target
+  });
 
   const pimlicoClient = createPimlicoClient({
     transport: http(PIMLICO_URL),
