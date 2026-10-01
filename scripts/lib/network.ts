@@ -2,7 +2,7 @@
 // from the hardhat network name. Add a new entry here whenever a new
 // network is added to hardhat.config.ts.
 
-import { sepolia, polygonAmoy, xrplevmTestnet } from "viem/chains";
+import { sepolia, polygonAmoy, xrplevm, xrplevmTestnet } from "viem/chains";
 import type { Chain } from "viem";
 
 interface NetworkEntry {
@@ -16,6 +16,7 @@ const NETWORK_MAP: Record<string, NetworkEntry> = {
   sepolia: { chain: sepolia,     rpcEnvVar: "SEPOLIA_RPC_URL", suffix: "SEPOLIA", chainId: 11155111 },
   amoy:    { chain: polygonAmoy, rpcEnvVar: "AMOY_RPC_URL",    suffix: "AMOY",    chainId: 80002    },
   xrplEvmTestnet: { chain: xrplevmTestnet, rpcEnvVar: "XRPL_EVM_TESTNET_RPC_URL", suffix: "XRPL_EVM_TESTNET", chainId: 1449000 },
+  xrplEvmMainnet: { chain: xrplevm, rpcEnvVar: "XRPL_EVM_MAINNET_RPC_URL", suffix: "XRPL_EVM_MAINNET", chainId: 1440000 },
 };
 
 export function getNetworkConfig(networkName: string): {
