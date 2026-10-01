@@ -10,7 +10,7 @@
 //
 // Required .env:
 //   NETWORK                      — sepolia | amoy  (default: sepolia)
-//   PIMLICO_API_KEY              — Pimlico bundler (all networks except xrplEvmTestnet, which uses Alto)
+//   PIMLICO_API_KEY_<NETWORK> / PIMLICO_API_KEY — Pimlico bundler (all networks except xrplEvmTestnet, which uses Alto)
 //   OWNER_PRIVATE_KEY            — whitelisted user's key (signs UserOps, needs no ETH)
 //   PRIVATE_KEY                  — funded wallet (pays gas for delegation tx if needed)
 //   SEPOLIA_RPC_URL / AMOY_RPC_URL
