@@ -18,7 +18,7 @@
  * Optional .env:
  *   REGISTRY_ADDRESS / REGISTRY_ADDRESS_<NETWORK> — registry to check
  *   USER_ADDRESS — the deployer EOA (default: OWNER_PRIVATE_KEY's address)
- *   PAYMASTER_ADDRESS / PAYMASTER_ADDRESS_<NETWORK>
+ *   PAYMASTER_ADDRESS_<NETWORK> (PAYMASTER_ADDRESS only if the per-network one is unset)
  */
 import { createPublicClient, http, keccak256, parseAbi, toHex, getAddress } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
@@ -53,8 +53,10 @@ async function main() {
   const registry = getAddress(
     process.env.REGISTRY_ADDRESS?.trim() || getEnv(suffix, "REGISTRY_ADDRESS"),
   );
+  // Per-network value first: a leftover generic PAYMASTER_ADDRESS in .env
+  // must not silently point the check at another chain's paymaster.
   const paymaster = getAddress(
-    process.env.PAYMASTER_ADDRESS?.trim() || getEnv(suffix, "PAYMASTER_ADDRESS"),
+    getEnv(suffix, "PAYMASTER_ADDRESS", false) || process.env.PAYMASTER_ADDRESS?.trim() || "",
   );
   const user = resolveUser();
   const client = createPublicClient({ chain, transport: http(rpcUrl) });

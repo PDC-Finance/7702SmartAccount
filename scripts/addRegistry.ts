@@ -28,8 +28,10 @@ async function main() {
   if (!process.env.PRIVATE_KEY) throw new Error("PRIVATE_KEY not set");
 
   const { chain, rpcUrl, suffix } = getNetworkConfig(hre.network.name);
-  const paymasterAddress = (process.env.PAYMASTER_ADDRESS?.trim() ||
-    getEnv(suffix, "PAYMASTER_ADDRESS")) as `0x${string}`;
+  // Per-network value first; a generic PAYMASTER_ADDRESS is only a fallback.
+  const paymasterAddress = (getEnv(suffix, "PAYMASTER_ADDRESS", false) ||
+    process.env.PAYMASTER_ADDRESS?.trim()) as `0x${string}`;
+  if (!paymasterAddress) throw new Error(`PAYMASTER_ADDRESS_${suffix} is not set in .env`);
   const registry = (process.env.REGISTRY_ADDRESS?.trim() ||
     getEnv(suffix, "REGISTRY_ADDRESS", false) ||
     "") as `0x${string}`;
