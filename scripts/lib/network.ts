@@ -45,6 +45,8 @@ export function getBundlerUrl(suffix: string, chainId: number): string {
   const override = process.env[`BUNDLER_URL_${suffix}`]?.trim();
   if (override) return override;
   if (suffix === "XRPL_EVM_TESTNET") return "https://alto-xrpl-evm-testnet.blockpeer.finance";
+  // Pimlico does not support XRPL EVM: mainnet needs our own Alto URL.
+  if (suffix === "XRPL_EVM_MAINNET") throw new Error("BUNDLER_URL_XRPL_EVM_MAINNET (our Alto) is not set in .env");
   const apiKey = process.env[`PIMLICO_API_KEY_${suffix}`]?.trim() || process.env.PIMLICO_API_KEY?.trim();
   if (!apiKey) {
     throw new Error(`PIMLICO_API_KEY_${suffix} (or PIMLICO_API_KEY, or BUNDLER_URL_${suffix}) is not set in .env`);
@@ -55,7 +57,7 @@ export function getBundlerUrl(suffix: string, chainId: number): string {
 /**
  * Contract the user's EOA delegates to (and the smart-account logic address
  * passed to permissionless). Must be bound to EntryPoint v0.8.
- * ACCOUNT_IMPL_ADDRESS_<SUFFIX> wins; XRPL EVM Testnet and Sepolia use
+ * ACCOUNT_IMPL_ADDRESS_<SUFFIX> wins; XRPL EVM Testnet/Mainnet and Sepolia use
  * permissionless's Simple7702Account; Amoy uses TrustVC's shared
  * EIP7702Implementation (EIP7702_IMPL_ADDRESS_AMOY). TrustVC's Sepolia
  * EIP7702Implementation is bound to EntryPoint v0.7, so it is not used.
@@ -65,7 +67,9 @@ export const SIMPLE_7702_ACCOUNT = "0xe6Cae83BdE06E4c305530e199D7217f42808555B" 
 export function getAccountImpl(suffix: string): `0x${string}` {
   const override = process.env[`ACCOUNT_IMPL_ADDRESS_${suffix}`]?.trim();
   if (override) return override as `0x${string}`;
-  if (suffix === "XRPL_EVM_TESTNET" || suffix === "SEPOLIA") return SIMPLE_7702_ACCOUNT;
+  if (suffix === "XRPL_EVM_TESTNET" || suffix === "XRPL_EVM_MAINNET" || suffix === "SEPOLIA") {
+    return SIMPLE_7702_ACCOUNT;
+  }
   return getEnv(suffix, "EIP7702_IMPL_ADDRESS") as `0x${string}`;
 }
 
