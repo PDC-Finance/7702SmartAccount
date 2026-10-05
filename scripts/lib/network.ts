@@ -2,7 +2,7 @@
 // from the hardhat network name. Add a new entry here whenever a new
 // network is added to hardhat.config.ts.
 
-import { sepolia, polygonAmoy, xrplevm, xrplevmTestnet } from "viem/chains";
+import { sepolia, polygon, polygonAmoy, xrplevm, xrplevmTestnet } from "viem/chains";
 import type { Chain } from "viem";
 
 interface NetworkEntry {
@@ -15,6 +15,7 @@ interface NetworkEntry {
 const NETWORK_MAP: Record<string, NetworkEntry> = {
   sepolia: { chain: sepolia,     rpcEnvVar: "SEPOLIA_RPC_URL", suffix: "SEPOLIA", chainId: 11155111 },
   amoy:    { chain: polygonAmoy, rpcEnvVar: "AMOY_RPC_URL",    suffix: "AMOY",    chainId: 80002    },
+  polygon: { chain: polygon,     rpcEnvVar: "POLYGON_RPC_URL", suffix: "POLYGON", chainId: 137      },
   xrplEvmTestnet: { chain: xrplevmTestnet, rpcEnvVar: "XRPL_EVM_TESTNET_RPC_URL", suffix: "XRPL_EVM_TESTNET", chainId: 1449000 },
   xrplEvmMainnet: { chain: xrplevm, rpcEnvVar: "XRPL_EVM_MAINNET_RPC_URL", suffix: "XRPL_EVM_MAINNET", chainId: 1440000 },
 };
@@ -57,7 +58,7 @@ export function getBundlerUrl(suffix: string, chainId: number): string {
 /**
  * Contract the user's EOA delegates to (and the smart-account logic address
  * passed to permissionless). Must be bound to EntryPoint v0.8.
- * ACCOUNT_IMPL_ADDRESS_<SUFFIX> wins; XRPL EVM Testnet/Mainnet and Sepolia use
+ * ACCOUNT_IMPL_ADDRESS_<SUFFIX> wins; XRPL EVM Testnet/Mainnet, Sepolia and Polygon use
  * permissionless's Simple7702Account; Amoy uses TrustVC's shared
  * EIP7702Implementation (EIP7702_IMPL_ADDRESS_AMOY). TrustVC's Sepolia
  * EIP7702Implementation is bound to EntryPoint v0.7, so it is not used.
@@ -67,7 +68,7 @@ export const SIMPLE_7702_ACCOUNT = "0xe6Cae83BdE06E4c305530e199D7217f42808555B" 
 export function getAccountImpl(suffix: string): `0x${string}` {
   const override = process.env[`ACCOUNT_IMPL_ADDRESS_${suffix}`]?.trim();
   if (override) return override as `0x${string}`;
-  if (suffix === "XRPL_EVM_TESTNET" || suffix === "XRPL_EVM_MAINNET" || suffix === "SEPOLIA") {
+  if (suffix === "XRPL_EVM_TESTNET" || suffix === "XRPL_EVM_MAINNET" || suffix === "SEPOLIA" || suffix === "POLYGON") {
     return SIMPLE_7702_ACCOUNT;
   }
   return getEnv(suffix, "EIP7702_IMPL_ADDRESS") as `0x${string}`;

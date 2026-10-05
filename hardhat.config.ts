@@ -34,6 +34,11 @@ const config: HardhatUserConfig = {
       accounts: PRIVATE_KEY ? [PRIVATE_KEY] : [],
       chainId: 1449000,
     },
+    polygon: {
+      url: process.env.POLYGON_RPC_URL || "https://polygon-rpc.com",
+      accounts: PRIVATE_KEY ? [PRIVATE_KEY] : [],
+      chainId: 137,
+    },
     xrplEvmMainnet: {
       url: process.env.XRPL_EVM_MAINNET_RPC_URL || "https://rpc.xrplevm.org",
       accounts: PRIVATE_KEY ? [PRIVATE_KEY] : [],
