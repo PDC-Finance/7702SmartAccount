@@ -37,20 +37,33 @@ export function getNetworkConfig(networkName: string): {
   return { chain: entry.chain, rpcUrl, chainId: entry.chainId, suffix: entry.suffix };
 }
 
+/** XRPL EVM networks use our own Alto bundler; every other network uses Pimlico. */
+const ALTO_DEFAULT_URLS: Record<string, string> = {
+  XRPL_EVM_TESTNET: "https://alto-xrpl-evm-testnet.blockpeer.finance",
+  XRPL_EVM_MAINNET: "https://alto-xrpl-evm-mainnet.blockpeer.finance",
+};
+
 /**
- * ERC-4337 bundler for a network. BUNDLER_URL_<SUFFIX> wins; XRPL EVM Testnet
- * defaults to the Blockpeer Alto instance; every other network uses Pimlico's
- * hosted bundler with PIMLICO_API_KEY_<SUFFIX>, falling back to PIMLICO_API_KEY.
+ * ERC-4337 bundler for a network (strict, same rule as bp-trade-api):
+ *   XRPL EVM → our Alto: BUNDLER_URL_<SUFFIX> (e.g. staging Alto), else the
+ *              built-in host. Pimlico keys are ignored.
+ *   others   → Pimlico: PIMLICO_API_KEY_<SUFFIX>, else PIMLICO_API_KEY.
+ *              BUNDLER_URL_<SUFFIX> is ignored.
  */
 export function getBundlerUrl(suffix: string, chainId: number): string {
-  const override = process.env[`BUNDLER_URL_${suffix}`]?.trim();
-  if (override) return override;
-  if (suffix === "XRPL_EVM_TESTNET") return "https://alto-xrpl-evm-testnet.blockpeer.finance";
-  // Pimlico does not support XRPL EVM: mainnet needs our own Alto URL.
-  if (suffix === "XRPL_EVM_MAINNET") throw new Error("BUNDLER_URL_XRPL_EVM_MAINNET (our Alto) is not set in .env");
+  const altoDefault = ALTO_DEFAULT_URLS[suffix];
+  if (altoDefault) {
+    if (process.env[`PIMLICO_API_KEY_${suffix}`]?.trim()) {
+      console.warn(`PIMLICO_API_KEY_${suffix} is ignored: ${suffix} uses our Alto bundler`);
+    }
+    return process.env[`BUNDLER_URL_${suffix}`]?.trim() || altoDefault;
+  }
+  if (process.env[`BUNDLER_URL_${suffix}`]?.trim()) {
+    console.warn(`BUNDLER_URL_${suffix} is ignored: ${suffix} uses Pimlico`);
+  }
   const apiKey = process.env[`PIMLICO_API_KEY_${suffix}`]?.trim() || process.env.PIMLICO_API_KEY?.trim();
   if (!apiKey) {
-    throw new Error(`PIMLICO_API_KEY_${suffix} (or PIMLICO_API_KEY, or BUNDLER_URL_${suffix}) is not set in .env`);
+    throw new Error(`PIMLICO_API_KEY_${suffix} or PIMLICO_API_KEY is not set in .env`);
   }
   return `https://api.pimlico.io/v2/${chainId}/rpc?apikey=${apiKey}`;
 }
